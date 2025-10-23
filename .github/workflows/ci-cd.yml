@@ -1,53 +1,38 @@
-name: CI / Build / Deploy
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - "feature/**"
-      - "master"
-  pull_request:
+      - main
+      - feature/**
 
 jobs:
-  test:
-    name: Test
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: "18"
 
       - name: Install dependencies
-        working-directory: ./src
         run: npm ci
 
       - name: Run tests
-        working-directory: ./src
         run: npm test
 
-  build-and-push:
-    name: Build & Push Docker Image
-    needs: test
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_REPO }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKERHUB_REPO }}:latest .
 
-      - name: Log in to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./src
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_REPO }}:${{ github.sha }}
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKERHUB_REPO }}:latest
