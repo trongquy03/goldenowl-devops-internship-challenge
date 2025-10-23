@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -20,12 +21,15 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
+        working-directory: ./src
         run: npm ci
 
       - name: Run tests
+        working-directory: ./src
         run: npm test
 
   build-and-push:
+    name: Build & Push Docker Image
     needs: test
     runs-on: ubuntu-latest
     env:
@@ -43,6 +47,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./src
+          file: ./src/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_REPO }}:${{ github.sha }}
